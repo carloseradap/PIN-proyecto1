@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect } from "react";
 import { CONFIG, Block } from "./config";
 
 const SLOT = 30;
-const MAX_BLOCKS = 12;
 
 const pad = (n: number) => n.toString().padStart(2, "0");
 const minToHHMM = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
@@ -41,7 +40,6 @@ export default function App() {
     const root = document.documentElement;
     if (darkMode) root.classList.add("dark");
     else root.classList.remove("dark");
-
     localStorage.setItem("nova-dark", darkMode.toString());
   }, [darkMode]);
 
@@ -50,15 +48,16 @@ export default function App() {
     [anchor]
   );
 
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(base);
-    d.setDate(d.getDate() + i);
-    return d;
-  });
+  const days = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(base);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  }, [base]);
 
   const conflicts = useMemo(() => {
     const ids = new Set<string>();
-
     for (let i = 0; i < blocks.length; i++) {
       for (let j = i + 1; j < blocks.length; j++) {
         for (let day = 0; day < 7; day++) {
@@ -69,7 +68,6 @@ export default function App() {
         }
       }
     }
-
     return ids;
   }, [blocks]);
 
@@ -101,7 +99,6 @@ export default function App() {
     }
 
     const lines: string[] = [];
-
     lines.push("BEGIN:VCALENDAR");
     lines.push("VERSION:2.0");
 
@@ -148,18 +145,25 @@ export default function App() {
       <h1>NOVA Flow Mini</h1>
 
       <div className="panel">
-        <button onClick={() => changeWeek(-1)}>← Semana anterior</button>
-        <button onClick={() => changeWeek(1)}>Semana siguiente →</button>
+        <button onClick={() => changeWeek(-1)}>
+          ← Semana anterior
+        </button>
 
-        <button onClick={() => setDarkMode(!darkMode)}>
+        <button onClick={() => changeWeek(1)}>
+          Semana siguiente →
+        </button>
+
+        <button onClick={() => setDarkMode(prev => !prev)}>
           {darkMode ? "☀ Light" : "🌙 Dark"}
         </button>
 
-        <button onClick={exportICS}>Exportar .ics</button>
+        <button onClick={exportICS}>
+          Exportar .ics
+        </button>
       </div>
 
       <h3>
-        Semana: {base.toLocaleDateString()} -{" "}
+        Semana: {base.toLocaleDateString()} —{" "}
         {days[6].toLocaleDateString()}
       </h3>
 
@@ -192,9 +196,9 @@ export default function App() {
                   <td
                     key={i}
                     onDragOver={e => e.preventDefault()}
-                    onDrop={() =>
-                      dragId && moveBlock(dragId, day, m)
-                    }
+                    onDrop={() => {
+                      if (dragId) moveBlock(dragId, day, m);
+                    }}
                   >
                     {block && (
                       <div
@@ -208,3 +212,18 @@ export default function App() {
                           cursor: "grab"
                         }}
                       >
+                        {block.title}
+                      </div>
+                    )}
+
+                    {!block && cont && "•"}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
