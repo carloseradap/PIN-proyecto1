@@ -139,3 +139,43 @@ Grafana utiliza Prometheus como datasource para visualizar métricas básicas de
 
 Este componente cubre el requisito de Observabilidad del Proyecto 1.
 
+## Application Architecture
+
+This project deploys a React + TypeScript + Vite SPA (Nova Flow Mini).
+
+### Tech Stack
+- React
+- TypeScript
+- Vite
+- Docker (multi-stage)
+- Nginx (static serving)
+- AWS EC2 (Free Tier)
+- AWS ECR
+- Terraform (IaC)
+- GitHub Actions (CI/CD)
+
+### Application Structure
+
+src/
+main.tsx
+App.tsx
+config.ts
+index.css
+
+
+### Build Process
+
+1. Vite builds static assets into `/dist`
+2. Docker multi-stage:
+   - Stage 1: Node builds app
+   - Stage 2: Nginx serves static files
+3. Image pushed to ECR
+4. EC2 pulls latest image and runs container
+
+### Deployment Model
+
+- Single EC2 instance (t2.micro – Free Tier)
+- Single Docker container
+- Port 80 exposed
+- Security Group allows HTTP (80)
+
