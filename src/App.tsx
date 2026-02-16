@@ -8,10 +8,6 @@ const MAX_BLOCKS = 12;
 
 const pad = (n: number) => n.toString().padStart(2, "0");
 const minToHHMM = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
-const hhmmToMin = (t: string) => {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-};
 
 function startOfWeek(d: Date, mode: "monday" | "sunday") {
   const date = new Date(d);
@@ -118,7 +114,7 @@ export default function App() {
       return;
     }
 
-    let lines: string[] = [];
+    const lines: string[] = [];
     lines.push("BEGIN:VCALENDAR");
     lines.push("VERSION:2.0");
 
