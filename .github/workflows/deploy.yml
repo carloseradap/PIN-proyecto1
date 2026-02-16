@@ -1,0 +1,52 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region us-east-1 \
+          | docker login --username AWS --password-stdin 627131317824.dkr.ecr.us-east-1.amazonaws.com
+
+      - name: Build Docker image
+        run: |
+          docker build -t pin-proyecto1:latest .
+
+      - name: Tag image
+        run: |
+          docker tag pin-proyecto1:latest \
+          627131317824.dkr.ecr.us-east-1.amazonaws.com/pin-proyecto1-repo:latest
+
+      - name: Push image to ECR
+        run: |
+          docker push 627131317824.dkr.ecr.us-east-1.amazonaws.com/pin-proyecto1-repo:latest
+
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull 627131317824.dkr.ecr.us-east-1.amazonaws.com/pin-proyecto1-repo:latest
+            docker stop app || true
+            docker rm app || true
+            docker run -d -p 80:80 --name app \
+            627131317824.dkr.ecr.us-east-1.amazonaws.com/pin-proyecto1-repo:latest
