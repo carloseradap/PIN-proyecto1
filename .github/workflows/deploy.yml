@@ -10,8 +10,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -46,7 +54,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             docker pull 627131317824.dkr.ecr.us-east-1.amazonaws.com/pin-proyecto1-repo:latest
-            docker stop app || true
-            docker rm app || true
+            docker ps -q --filter "name=app" | grep -q . && docker stop app || true
+            docker ps -aq --filter "name=app" | grep -q . && docker rm app || true
             docker run -d -p 80:80 --name app \
             627131317824.dkr.ecr.us-east-1.amazonaws.com/pin-proyecto1-repo:latest

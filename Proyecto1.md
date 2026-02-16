@@ -99,4 +99,43 @@ Flujo de despliegue:
 URL pública:
 http://54.221.4.144
 
+## Estrategia de Deploy
+
+El contenedor se ejecuta con nombre fijo:
+
+pin-proyecto1
+
+Para actualizar la aplicación:
+
+1. docker stop pin-proyecto1
+2. docker rm pin-proyecto1
+3. docker pull <ECR_IMAGE>
+4. docker run -d --name pin-proyecto1 -p 80:80 <ECR_IMAGE>
+
+## Autenticación Git
+
+El repositorio utiliza autenticación SSH para evitar el uso de
+credenciales HTTPS y tokens personales.
+
+## Observabilidad – Prometheus & Grafana
+
+Para cumplir con el requisito de monitoreo del Proyecto 1, se desplegaron:
+
+- Prometheus (puerto 9090)
+- Grafana (puerto 3000)
+
+Ambos ejecutándose como contenedores Docker dentro de la misma instancia EC2 (Free Tier).
+
+Acceso:
+
+- Prometheus: http://<EC2_PUBLIC_IP>:9090
+- Grafana: http://<EC2_PUBLIC_IP>:3000
+
+Credenciales iniciales Grafana:
+- Usuario: admin
+- Password: admin
+
+Grafana utiliza Prometheus como datasource para visualizar métricas básicas del entorno.
+
+Este componente cubre el requisito de Observabilidad del Proyecto 1.
 
