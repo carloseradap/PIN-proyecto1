@@ -1,11 +1,14 @@
-/* =========================
+/* ================================
    BASE
-========================= */
+================================ */
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
 
 body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
   background: #f4f4f4;
   color: #111;
   transition: background 0.2s ease, color 0.2s ease;
@@ -16,65 +19,75 @@ body.dark {
   color: #f0f0f0;
 }
 
-/* =========================
-   HEADER STICKY
-========================= */
+/* ================================
+   APP LAYOUT
+================================ */
 
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* HEADER FIJO REAL */
 .app-header {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  background: inherit;
   padding: 20px;
   border-bottom: 1px solid #ccc;
+  background: inherit;
+  flex-shrink: 0;
 }
 
 body.dark .app-header {
   border-color: #333;
 }
 
-/* =========================
-   PANEL CONTROLES
-========================= */
-
-.panel {
-  margin-top: 10px;
+/* SCROLL AREA */
+.calendar-wrapper {
+  flex: 1;
+  overflow: auto;
 }
 
-button {
-  padding: 6px 10px;
-  margin-right: 6px;
-  cursor: pointer;
-}
-
-/* =========================
+/* ================================
    TABLE
-========================= */
+================================ */
 
 table {
-  width: 100%;
   border-collapse: collapse;
+  width: 100%;
+  min-width: 1000px;
   font-size: 12px;
 }
 
-/* Fila sticky de fechas */
+/* Sticky top row */
 thead th {
   position: sticky;
-  top: 120px; /* Ajustar si header cambia de tamaño */
+  top: 0;
   background: #f4f4f4;
-  z-index: 900;
+  z-index: 5;
 }
 
 body.dark thead th {
   background: #121212;
 }
 
-/* Celdas */
-th,
-td {
+/* Sticky first column */
+.sticky-time {
+  position: sticky;
+  left: 0;
+  background: #f4f4f4;
+  z-index: 4;
+}
+
+body.dark .sticky-time {
+  background: #121212;
+}
+
+/* Cell styling */
+th, td {
   border: 1px solid #ccc;
   padding: 4px;
-  height: 40px;
+  height: 45px;
+  min-width: 120px;
   vertical-align: top;
 }
 
@@ -83,36 +96,41 @@ body.dark td {
   border-color: #333;
 }
 
-/* =========================
-   BLOQUES
-========================= */
+/* ================================
+   BLOCK
+================================ */
 
 .block {
   padding: 4px;
   border-radius: 4px;
   cursor: grab;
   font-size: 11px;
-  color: #fff;
+  color: white;
+  transition: transform 0.1s ease;
 }
 
-/* =========================
+.block:hover {
+  transform: scale(1.03);
+}
+
+/* ================================
    MODAL
-========================= */
+================================ */
 
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0,0,0,0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 100;
 }
 
 .modal-content {
   background: white;
   padding: 20px;
-  width: 320px;
+  width: 340px;
   border-radius: 6px;
 }
 
@@ -121,15 +139,7 @@ body.dark .modal-content {
   color: white;
 }
 
-/* =========================
-   SCROLL OPTIMIZADO
-========================= */
-
-html,
-body {
-  height: 100%;
-}
-
-table {
-  margin-bottom: 100px;
+input, textarea {
+  width: 100%;
+  margin-bottom: 8px;
 }

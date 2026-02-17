@@ -36,11 +36,13 @@ export default function App() {
     [anchor]
   );
 
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(base);
-    d.setDate(d.getDate() + i);
-    return d;
-  });
+  const days = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(base);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  }, [base]);
 
   const changeWeek = (delta: number) => {
     const d = new Date(anchor);
@@ -95,12 +97,13 @@ export default function App() {
   for (let m = 0; m < 1440; m += SLOT) slots.push(m);
 
   return (
-    <div>
-      {/* HEADER FIJO */}
+    <div className="app-container">
+
+      {/* HEADER */}
       <div className="app-header">
         <h1>NOVA Flow Mini</h1>
 
-        <div className="panel">
+        <div>
           <button onClick={() => changeWeek(-1)}>←</button>
           <button onClick={() => changeWeek(1)}>→</button>
           <button onClick={() => setDarkMode(d => !d)}>
@@ -109,57 +112,63 @@ export default function App() {
         </div>
 
         <h3>
-          Semana: {base.toLocaleDateString()} -{" "}
-          {days[6].toLocaleDateString()}
+          Semana: {base.toLocaleDateString()} - {days[6].toLocaleDateString()}
         </h3>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Hora</th>
-            {days.map((d, i) => (
-              <th key={i}>{d.toLocaleDateString()}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {slots.map(m => (
-            <tr key={m}>
-              <td>{minToHHMM(m)}</td>
-              {days.map((d, i) => {
-                const day = d.getDay();
-                const block = blocks.find(
-                  b => b.days.includes(day) && b.startMin === m
-                );
-
-                return (
-                  <td
-                    key={i}
-                    onClick={() => !block && addBlockAt(day, m)}
-                    onDragOver={e => e.preventDefault()}
-                    onDrop={() => dragId && moveBlock(dragId, day, m)}
-                  >
-                    {block && (
-                      <div
-                        draggable
-                        onDragStart={() => setDragId(block.id)}
-                        onDoubleClick={() => setEditing(block)}
-                        className="block"
-                        style={{ background: block.color }}
-                      >
-                        {block.title}
-                        <br />
-                        {minToHHMM(block.startMin)} - {minToHHMM(block.endMin)}
-                      </div>
-                    )}
-                  </td>
-                );
-              })}
+      {/* SCROLLABLE CALENDAR */}
+      <div className="calendar-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th className="sticky-time">Hora</th>
+              {days.map((d, i) => (
+                <th key={i}>{d.toLocaleDateString()}</th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {slots.map(m => (
+              <tr key={m}>
+                <td className="sticky-time">
+                  {minToHHMM(m)}
+                </td>
+
+                {days.map((d, i) => {
+                  const day = d.getDay();
+                  const block = blocks.find(
+                    b => b.days.includes(day) && b.startMin === m
+                  );
+
+                  return (
+                    <td
+                      key={i}
+                      onClick={() => !block && addBlockAt(day, m)}
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={() => dragId && moveBlock(dragId, day, m)}
+                    >
+                      {block && (
+                        <div
+                          draggable
+                          onDragStart={() => setDragId(block.id)}
+                          onDoubleClick={() => setEditing(block)}
+                          className="block"
+                          style={{ background: block.color }}
+                        >
+                          {block.title}
+                          <br />
+                          {minToHHMM(block.startMin)} - {minToHHMM(block.endMin)}
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* MODAL EDICIÓN */}
       {editing && (
@@ -228,6 +237,7 @@ export default function App() {
           </div>
         </div>
       )}
+
     </div>
   );
 }
