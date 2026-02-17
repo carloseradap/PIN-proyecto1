@@ -1,9 +1,14 @@
+/* =========================
+   BASE
+========================= */
+
 body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
   background: #f4f4f4;
   color: #111;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 body.dark {
@@ -11,7 +16,10 @@ body.dark {
   color: #f0f0f0;
 }
 
-/* HEADER FIJO */
+/* =========================
+   HEADER STICKY
+========================= */
+
 .app-header {
   position: sticky;
   top: 0;
@@ -25,9 +33,23 @@ body.dark .app-header {
   border-color: #333;
 }
 
+/* =========================
+   PANEL CONTROLES
+========================= */
+
 .panel {
   margin-top: 10px;
 }
+
+button {
+  padding: 6px 10px;
+  margin-right: 6px;
+  cursor: pointer;
+}
+
+/* =========================
+   TABLE
+========================= */
 
 table {
   width: 100%;
@@ -35,7 +57,21 @@ table {
   font-size: 12px;
 }
 
-th, td {
+/* Fila sticky de fechas */
+thead th {
+  position: sticky;
+  top: 120px; /* Ajustar si header cambia de tamaño */
+  background: #f4f4f4;
+  z-index: 900;
+}
+
+body.dark thead th {
+  background: #121212;
+}
+
+/* Celdas */
+th,
+td {
   border: 1px solid #ccc;
   padding: 4px;
   height: 40px;
@@ -47,6 +83,10 @@ body.dark td {
   border-color: #333;
 }
 
+/* =========================
+   BLOQUES
+========================= */
+
 .block {
   padding: 4px;
   border-radius: 4px;
@@ -55,13 +95,18 @@ body.dark td {
   color: #fff;
 }
 
+/* =========================
+   MODAL
+========================= */
+
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 2000;
 }
 
 .modal-content {
@@ -74,4 +119,17 @@ body.dark td {
 body.dark .modal-content {
   background: #1e1e1e;
   color: white;
+}
+
+/* =========================
+   SCROLL OPTIMIZADO
+========================= */
+
+html,
+body {
+  height: 100%;
+}
+
+table {
+  margin-bottom: 100px;
 }
