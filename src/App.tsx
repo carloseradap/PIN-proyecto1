@@ -5,6 +5,10 @@ const SLOT = 30;
 
 const pad = (n: number) => n.toString().padStart(2, "0");
 const minToHHMM = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
+const hhmmToMin = (t: string) => {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+};
 
 function startOfWeek(d: Date, mode: "monday" | "sunday") {
   const date = new Date(d);
@@ -67,11 +71,21 @@ export default function App() {
     setEditing(null);
   };
 
+  const deleteBlock = (id: string) => {
+    setBlocks(prev => prev.filter(b => b.id !== id));
+    setEditing(null);
+  };
+
   const moveBlock = (id: string, day: number, start: number) => {
     setBlocks(prev =>
       prev.map(b =>
         b.id === id
-          ? { ...b, days: [day], startMin: start, endMin: start + (b.endMin - b.startMin) }
+          ? {
+              ...b,
+              days: [day],
+              startMin: start,
+              endMin: start + (b.endMin - b.startMin)
+            }
           : b
       )
     );
@@ -82,14 +96,22 @@ export default function App() {
 
   return (
     <div>
-      <h1>NOVA Flow Mini</h1>
+      {/* HEADER FIJO */}
+      <div className="app-header">
+        <h1>NOVA Flow Mini</h1>
 
-      <div className="panel">
-        <button onClick={() => changeWeek(-1)}>←</button>
-        <button onClick={() => changeWeek(1)}>→</button>
-        <button onClick={() => setDarkMode(d => !d)}>
-          {darkMode ? "Light" : "Dark"}
-        </button>
+        <div className="panel">
+          <button onClick={() => changeWeek(-1)}>←</button>
+          <button onClick={() => changeWeek(1)}>→</button>
+          <button onClick={() => setDarkMode(d => !d)}>
+            {darkMode ? "Light" : "Dark"}
+          </button>
+        </div>
+
+        <h3>
+          Semana: {base.toLocaleDateString()} -{" "}
+          {days[6].toLocaleDateString()}
+        </h3>
       </div>
 
       <table>
@@ -127,6 +149,8 @@ export default function App() {
                         style={{ background: block.color }}
                       >
                         {block.title}
+                        <br />
+                        {minToHHMM(block.startMin)} - {minToHHMM(block.endMin)}
                       </div>
                     )}
                   </td>
@@ -137,23 +161,53 @@ export default function App() {
         </tbody>
       </table>
 
+      {/* MODAL EDICIÓN */}
       {editing && (
         <div className="modal">
           <div className="modal-content">
             <h3>Editar bloque</h3>
+
+            <label>Título</label>
             <input
               value={editing.title}
               onChange={e =>
                 setEditing({ ...editing, title: e.target.value })
               }
             />
+
+            <label>Inicio</label>
+            <input
+              type="time"
+              value={minToHHMM(editing.startMin)}
+              onChange={e =>
+                setEditing({
+                  ...editing,
+                  startMin: hhmmToMin(e.target.value)
+                })
+              }
+            />
+
+            <label>Fin</label>
+            <input
+              type="time"
+              value={minToHHMM(editing.endMin)}
+              onChange={e =>
+                setEditing({
+                  ...editing,
+                  endMin: hhmmToMin(e.target.value)
+                })
+              }
+            />
+
+            <label>Comentarios</label>
             <textarea
-              placeholder="Comentarios"
               value={editing.notes}
               onChange={e =>
                 setEditing({ ...editing, notes: e.target.value })
               }
             />
+
+            <label>Color</label>
             <input
               type="color"
               value={editing.color}
@@ -161,9 +215,16 @@ export default function App() {
                 setEditing({ ...editing, color: e.target.value })
               }
             />
+
             <br /><br />
+
             <button onClick={saveBlock}>Guardar</button>
-            <button onClick={() => setEditing(null)}>Cancelar</button>
+            <button onClick={() => deleteBlock(editing.id)}>
+              Eliminar
+            </button>
+            <button onClick={() => setEditing(null)}>
+              Cancelar
+            </button>
           </div>
         </div>
       )}
