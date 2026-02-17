@@ -1,6 +1,9 @@
 # Proyecto Final Diplomado DevOps - CI/CD Seguro en AWS
 
 ## MundosE -- DevOps2502 -- Grupo 8
+## -Escalante, Eliany
+## -Rada, Carlos
+## -Zeledon, Silvia
 
 ### Proyecto 1: CI/CD con GitHub Actions + Terraform + Docker (AWS)
 
@@ -11,199 +14,313 @@
 ![Security](https://img.shields.io/badge/Security-ESLint%20%7C%20Snyk%20%7C%20SBOM-success)
 ![License](https://img.shields.io/badge/Status-Academic%20Project-blueviolet)
 
-------------------------------------------------------------------------
+📌 1. Descripción General
 
-## 1. Introducción
+Este proyecto implementa un pipeline completo de Integración Continua y Entrega Continua (CI/CD) para una aplicación SPA desarrollada con React + TypeScript + Vite, desplegada en AWS utilizando infraestructura como código y prácticas de DevSecOps.
 
-Este proyecto implementa un pipeline completo de Integración y Entrega
-Continua (CI/CD) para una aplicación SPA desarrollada con React +
-TypeScript + Vite, desplegada en AWS utilizando infraestructura como
-código y prácticas de DevSecOps.
+Se integran:
 
-Se integran los siguientes componentes:
+CI/CD automatizado
 
--   Contenerización con Docker
--   Infraestructura como Código con Terraform
--   Pipeline automatizado con GitHub Actions
--   Publicación de imagen en Amazon ECR
--   Despliegue automatizado en EC2 (Free Tier)
--   Generación de SBOM (CycloneDX / SPDX)
--   Análisis de seguridad (ESLint + Snyk)
--   Observabilidad con Prometheus + Grafana
+Contenerización con Docker
 
-------------------------------------------------------------------------
+Infraestructura en AWS (EC2 + ECR)
 
-## 2. Arquitectura General
+Seguridad integrada (Snyk + ESLint + SBOM)
 
-### Stack Tecnológico
+Observabilidad (Prometheus + Grafana)
 
--   React
--   TypeScript
--   Vite
--   Docker
--   Nginx (servidor estático)
--   AWS EC2 (t2.micro -- Free Tier)
--   Amazon ECR
--   Terraform
--   GitHub Actions
--   Prometheus
--   Node Exporter
--   cAdvisor
--   Grafana
+🏗️ 2. Arquitectura General
+🔹 Diagrama de Arquitectura AWS
+flowchart TB
 
-### Flujo de Arquitectura
+    subgraph GitHub
+        Dev[Developer]
+        Repo[GitHub Repository]
+        Actions[GitHub Actions]
+    end
 
-GitHub → GitHub Actions → Amazon ECR → EC2 (Docker)\
-EC2 → Prometheus → Grafana
+    subgraph AWS
+        subgraph ECR
+            Registry[(Amazon ECR)]
+        end
 
-------------------------------------------------------------------------
+        subgraph EC2
+            Docker[Docker Engine]
+            App[App Container - Nginx]
+            NodeExp[Node Exporter]
+            cAdv[cAdvisor]
+            Prom[Prometheus]
+            Graf[Grafana]
+        end
+    end
 
-## 3. Aplicación
+    Dev --> Repo
+    Repo --> Actions
+    Actions --> Registry
 
-Aplicación SPA construida con:
+    Registry -->|docker pull| Docker
+    Docker --> App
 
--   React
--   TypeScript
--   Vite
+    Docker --> NodeExp
+    Docker --> cAdv
 
-Estructura principal:
+    NodeExp --> Prom
+    cAdv --> Prom
+    Prom --> Graf
 
-src/ ├── main.tsx ├── App.tsx ├── config.ts └── index.css
+🔁 3. Pipeline CI/CD
+📦 Diagrama del Pipeline
+flowchart LR
 
-Build de producción generado en:
+subgraph DEV["👨‍💻 Desarrollo"]
+    A[Developer]
+    B[GitHub Repository]
+end
 
-/dist
+A -->|Push to main| B
 
-------------------------------------------------------------------------
+subgraph CI["⚙️ GitHub Actions Pipeline"]
+    C[Checkout]
+    D[npm ci]
+    E[Type Check]
+    F[ESLint]
+    G[Snyk Scan]
+    H[Docker Build]
+    I[Generate SBOM]
+    J[Push to ECR]
+end
 
-## 4. Contenerización
+B --> C
+C --> D
+D --> E
+E --> F
+F --> G
+G --> H
+H --> I
+I --> J
 
-Archivo:
+subgraph AWS["☁️ AWS"]
+    K[(Amazon ECR)]
+    L[EC2]
+    M[Docker Runtime]
+    N[App Running]
+end
 
-Dockerfile
+J --> K
+K -->|Pull| L
+L --> M
+M --> N
 
-### Estrategia Multi-Stage
+🔹 Etapas del Pipeline
 
-1.  Stage 1 -- Node: build de la aplicación
-2.  Stage 2 -- Nginx: servidor estático para producción
+1️⃣ Checkout del código
+2️⃣ Instalación determinística (npm ci)
+3️⃣ Validación TypeScript
+4️⃣ Análisis estático ESLint
+5️⃣ Escaneo de dependencias con Snyk
+6️⃣ Build Docker multi-stage
+7️⃣ Generación SBOM con Syft
+8️⃣ Push de imagen a Amazon ECR
+9️⃣ Deploy automático vía SSH en EC2
 
-Imagen publicada en:
+🐳 4. Contenerización
+Docker Multi-Stage
 
-627131317824.dkr.ecr.us-east-1.amazonaws.com/pin-proyecto1-repo:latest
+Stage 1 – Build
 
-------------------------------------------------------------------------
+node:20-alpine
 
-## 5. Infraestructura como Código (Terraform)
+npm ci
 
-La infraestructura se define en la carpeta:
+npm run build
 
-infra/
+Stage 2 – Runtime
 
-Incluye:
+nginx:alpine
 
--   VPC
--   Subnet pública
--   Internet Gateway
--   Security Group
--   EC2 Instance
--   IAM Role (AmazonEC2ContainerRegistryReadOnly)
--   ECR Repository
+Sirve carpeta /dist
 
-------------------------------------------------------------------------
+Expone puerto 80
 
-## 6. Pipeline CI/CD
+Decisiones técnicas
 
-Definido en:
+Uso de Alpine para reducir superficie de ataque
 
-.github/workflows/deploy.yml
+Separación build/runtime
 
-Etapas:
+No ejecución de Node en producción
 
-1.  Checkout
-2.  npm ci
-3.  Typecheck
-4.  ESLint
-5.  Build Docker
-6.  SBOM
-7.  Push a ECR
-8.  Deploy en EC2
+☁️ 5. Infraestructura AWS
+EC2
 
-------------------------------------------------------------------------
+Tipo: t2.micro (Free Tier)
 
-## 7. DevSecOps & Seguridad Implementada
+IAM Role: AmazonEC2ContainerRegistryReadOnly
 
-Este proyecto integra prácticas de seguridad en cada etapa del pipeline CI/CD:
+Docker Engine instalado
 
-### 1️⃣ Análisis Estático de Código
-- ESLint v9 (Flat Config)
-- Validación automática en GitHub Actions
-- El pipeline falla ante errores críticos
+Puertos abiertos:
 
-### 2️⃣ Análisis de Dependencias
-- Snyk Scan en pipeline
-- Evaluación de vulnerabilidades NPM
-- Política: fail on high severity
+80 (App)
 
-### 3️⃣ Seguridad de Imagen Docker
-- Imagen base mínima (Node Alpine + Nginx)
-- Multi-stage build
-- Reducción de superficie de ataque
+9090 (Prometheus)
 
-### 4️⃣ SBOM (Software Bill of Materials)
-- Generado con Syft
-- Formato CycloneDX JSON
-- Evidencia almacenada como artefacto del pipeline
+3000 (Grafana)
 
-### 5️⃣ Seguridad en Infraestructura
-- IAM Role para EC2 (sin credenciales hardcodeadas)
-- Policy AmazonEC2ContainerRegistryReadOnly
-- SSH mediante clave privada
-- Variables sensibles almacenadas en GitHub Secrets
+ECR
 
-Este enfoque cumple principios de:
+Registro privado de imágenes
 
-- DevSecOps
-- Secure Software Supply Chain
-- Least Privilege
-- Shift Left Security
+Versionado por tag
+
+🔐 6. Seguridad – DevSecOps
+✔ ESLint
+
+Prevención de errores y malas prácticas.
+
+✔ TypeScript
+
+Validación estática de tipos.
+
+✔ Snyk
+
+Escaneo de dependencias
+
+Escaneo de imagen Docker
+
+✔ SBOM (CycloneDX)
+
+Generado con Syft:
+
+syft <imagen> -o cyclonedx-json
 
 
-------------------------------------------------------------------------
+Permite trazabilidad completa de dependencias.
 
-## 8. Observabilidad
+✔ Gestión de secretos
+
+Variables sensibles almacenadas en GitHub Secrets.
+
+✔ IAM Role
+
+Sin credenciales embebidas en EC2.
+
+📊 7. Observabilidad
 
 Stack implementado:
 
--   Prometheus
--   Node Exporter
--   cAdvisor
--   Grafana
+Prometheus
 
-Métricas:
+Node Exporter
 
-EC2: - CPU - Memoria - Disco - Red
+cAdvisor
 
-Contenedores: - CPU - Memoria - Disco - Red - Estado
+Grafana
 
-------------------------------------------------------------------------
+Métricas monitoreadas
+EC2
 
-## 9. Conclusión
+CPU
 
-El proyecto demuestra la integración completa de CI/CD, IaC, seguridad y
-observabilidad en AWS Free Tier.
+Memoria
 
-Incluye:
+Disco
 
-Snyk Scan
+Network
 
-SBOM generation
+Contenedores
 
-Upload artifacts
+Estado
 
-Memory limit en Docker
+CPU
 
-restart policy
+Memoria
 
-Autor: Grupo 7 -- MundosE\
-Diplomado DevOps 2502\
-Año 2026
+Disco
+
+Red
+
+⚙️ 8. Control de Recursos
+
+El contenedor se ejecuta con:
+
+--memory="256m"
+--restart unless-stopped
+
+
+Justificación:
+
+Protección contra consumo excesivo
+
+Alta disponibilidad básica
+
+📂 9. Entregables Incluidos
+
+.github/workflows/deploy.yml
+
+Dockerfile
+
+Archivos Terraform
+
+sbom-cyclonedx.json
+
+Capturas pipeline exitoso
+
+Capturas dashboards
+
+Evidencia Snyk
+
+README.md
+
+🎯 10. Decisiones Arquitectónicas
+Decisión	Justificación
+EC2 vs ECS	Control manual para proyecto académico
+Docker manual	Comprensión del runtime
+SBOM	Cumplimiento supply chain
+IAM Role	Seguridad sin credenciales
+Multi-stage	Imagen optimizada
+Observabilidad completa	Nivel sobresaliente
+🧠 11. Defensa Oral – Resumen Técnico
+
+Este proyecto implementa:
+
+CI/CD automatizado
+
+Seguridad integrada en pipeline
+
+Infraestructura reproducible
+
+Monitoreo completo
+
+Gestión segura de credenciales
+
+Supply Chain Security mediante SBOM
+
+Cumple principios de:
+
+DevOps
+
+DevSecOps
+
+Infraestructura como Código
+
+Observabilidad
+
+Automatización
+
+🏆 12. Conclusión
+
+Se desarrolló una arquitectura funcional, automatizada y segura que integra:
+
+Desarrollo moderno
+
+Seguridad integrada
+
+Cloud computing
+
+Contenerización optimizada
+
+Monitoreo avanzado
+
+El proyecto demuestra dominio práctico de herramientas y metodologías del Diplomado DevOps.
