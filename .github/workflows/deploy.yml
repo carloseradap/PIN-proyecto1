@@ -1,4 +1,4 @@
-name: CI/CD - Build and Deploy to EC2
+name: CI/CD Secure Deploy to AWS EC2
 
 on:
   push:
@@ -8,83 +8,118 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: pin-proyecto1-repo
-  IMAGE_NAME: pin-proyecto1
+  IMAGE_TAG: latest
+  ECR_REGISTRY: 627131317824.dkr.ecr.us-east-1.amazonaws.com
 
 jobs:
-  build-and-deploy:
+  build-secure-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
-      # Setup Node
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
+    # 1️⃣ Checkout
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      # Install dependencies
-      - name: Install dependencies
-        run: npm ci
+    # 2️⃣ Setup Node
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
 
-      # TypeScript validation
-      - name: Type Check
-        run: npm run typecheck
+    # 3️⃣ Install Dependencies
+    - name: Install dependencies
+      run: npm ci
 
-      # ESLint validation
-      - name: Run ESLint
-        run: npm run lint
+    # 4️⃣ Type Check
+    - name: TypeScript Type Check
+      run: npm run typecheck
 
-      # Build application
-      - name: Build Application
-        run: npm run build
+    # 5️⃣ Lint
+    - name: Run ESLint
+      run: npm run lint
 
-      # Configure AWS credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+    # 6️⃣ Build App
+    - name: Build Application
+      run: npm run build
 
-      # Login to ECR
-      - name: Login to Amazon ECR
-        run: |
-          aws ecr get-login-password --region $AWS_REGION \
-          | docker login --username AWS --password-stdin 627131317824.dkr.ecr.us-east-1.amazonaws.com
+    # 7️⃣ Snyk - Dependency Scan
+    - name: Snyk Open Source Scan
+      uses: snyk/actions/node@master
+      with:
+        command: test
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      # Build and tag Docker image
-      - name: Build Docker image
-        run: |
-          docker build -t $IMAGE_NAME:${{ github.sha }} .
-          docker tag $IMAGE_NAME:${{ github.sha }} \
-          627131317824.dkr.ecr.us-east-1.amazonaws.com/$ECR_REPOSITORY:${{ github.sha }}
-          docker tag $IMAGE_NAME:${{ github.sha }} \
-          627131317824.dkr.ecr.us-east-1.amazonaws.com/$ECR_REPOSITORY:latest
+    # 8️⃣ Configure AWS
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
 
-      # Push image
-      - name: Push image to ECR
-        run: |
-          docker push 627131317824.dkr.ecr.us-east-1.amazonaws.com/$ECR_REPOSITORY:${{ github.sha }}
-          docker push 627131317824.dkr.ecr.us-east-1.amazonaws.com/$ECR_REPOSITORY:latest
+    # 9️⃣ Login ECR
+    - name: Login to Amazon ECR
+      run: |
+        aws ecr get-login-password --region $AWS_REGION \
+        | docker login --username AWS --password-stdin $ECR_REGISTRY
 
-      # Deploy to EC2
-      - name: Deploy on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            docker pull 627131317824.dkr.ecr.us-east-1.amazonaws.com/$ECR_REPOSITORY:latest
-            docker stop app || true
-            docker rm app || true
-            docker run -d \
-              --restart unless-stopped \
-              --memory="256m" \
-              -p 80:80 \
-              --name app \
-              627131317824.dkr.ecr.us-east-1.amazonaws.com/$ECR_REPOSITORY:latest
+    # 🔟 Build Docker
+    - name: Build Docker image
+      run: |
+        docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
+        docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    # 1️⃣1️⃣ Snyk Container Scan
+    - name: Snyk Container Scan
+      uses: snyk/actions/docker@master
+      with:
+        image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+        command: test
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+    # 1️⃣2️⃣ Generate SBOM (CycloneDX)
+    - name: Install Syft
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh
+        sudo mv ./bin/syft /usr/local/bin/
+
+    - name: Generate SBOM
+      run: |
+        syft $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+        -o cyclonedx-json > sbom-cyclonedx.json
+
+    # 1️⃣3️⃣ Upload SBOM as Artifact
+    - name: Upload SBOM
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom-cyclonedx
+        path: sbom-cyclonedx.json
+
+    # 1️⃣4️⃣ Push Image
+    - name: Push image to ECR
+      run: |
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    # 1️⃣5️⃣ Deploy to EC2
+    - name: Deploy on EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ec2-user
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+          docker stop app || true
+          docker rm app || true
+
+          docker run -d \
+            --restart unless-stopped \
+            --memory="256m" \
+            -p 80:80 \
+            --name app \
+            $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
