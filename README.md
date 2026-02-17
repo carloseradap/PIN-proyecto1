@@ -1,8 +1,15 @@
-# Proyecto Final Diplomado DevOps
+# Proyecto Final Diplomado DevOps - CI/CD Seguro en AWS
 
-## MundosE -- DevOps2502 -- Grupo 7
+## MundosE -- DevOps2502 -- Grupo 8
 
 ### Proyecto 1: CI/CD con GitHub Actions + Terraform + Docker (AWS)
+
+![CI/CD](https://github.com/MundosE/PIN-proyecto1/actions/workflows/deploy.yml/badge.svg)
+![Node](https://img.shields.io/badge/node-20.x-green)
+![Docker](https://img.shields.io/badge/docker-enabled-blue)
+![AWS](https://img.shields.io/badge/AWS-EC2%20%7C%20ECR-orange)
+![Security](https://img.shields.io/badge/Security-ESLint%20%7C%20Snyk%20%7C%20SBOM-success)
+![License](https://img.shields.io/badge/Status-Academic%20Project-blueviolet)
 
 ------------------------------------------------------------------------
 
@@ -123,19 +130,43 @@ Etapas:
 
 ------------------------------------------------------------------------
 
-## 7. Seguridad
+## 7. DevSecOps & Seguridad Implementada
 
-### ESLint
+Este proyecto integra prácticas de seguridad en cada etapa del pipeline CI/CD:
 
-Análisis estático integrado al pipeline.
+### 1️⃣ Análisis Estático de Código
+- ESLint v9 (Flat Config)
+- Validación automática en GitHub Actions
+- El pipeline falla ante errores críticos
 
-### Snyk
+### 2️⃣ Análisis de Dependencias
+- Snyk Scan en pipeline
+- Evaluación de vulnerabilidades NPM
+- Política: fail on high severity
 
-Escaneo de dependencias e imagen Docker.
+### 3️⃣ Seguridad de Imagen Docker
+- Imagen base mínima (Node Alpine + Nginx)
+- Multi-stage build
+- Reducción de superficie de ataque
 
-### SBOM
+### 4️⃣ SBOM (Software Bill of Materials)
+- Generado con Syft
+- Formato CycloneDX JSON
+- Evidencia almacenada como artefacto del pipeline
 
-Generado con Syft en formato CycloneDX y SPDX.
+### 5️⃣ Seguridad en Infraestructura
+- IAM Role para EC2 (sin credenciales hardcodeadas)
+- Policy AmazonEC2ContainerRegistryReadOnly
+- SSH mediante clave privada
+- Variables sensibles almacenadas en GitHub Secrets
+
+Este enfoque cumple principios de:
+
+- DevSecOps
+- Secure Software Supply Chain
+- Least Privilege
+- Shift Left Security
+
 
 ------------------------------------------------------------------------
 
@@ -160,6 +191,18 @@ Contenedores: - CPU - Memoria - Disco - Red - Estado
 
 El proyecto demuestra la integración completa de CI/CD, IaC, seguridad y
 observabilidad en AWS Free Tier.
+
+Incluye:
+
+Snyk Scan
+
+SBOM generation
+
+Upload artifacts
+
+Memory limit en Docker
+
+restart policy
 
 Autor: Grupo 7 -- MundosE\
 Diplomado DevOps 2502\
