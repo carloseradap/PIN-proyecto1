@@ -1,4 +1,4 @@
-name: CI/CD Secure Deploy to AWS EC2
+name: CI/CD - Build, Scan, SBOM & Deploy
 
 on:
   push:
@@ -7,9 +7,9 @@ on:
 
 env:
   AWS_REGION: us-east-1
+  ECR_REGISTRY: 627131317824.dkr.ecr.us-east-1.amazonaws.com
   ECR_REPOSITORY: pin-proyecto1-repo
   IMAGE_TAG: latest
-  ECR_REGISTRY: 627131317824.dkr.ecr.us-east-1.amazonaws.com
 
 jobs:
   build-secure-deploy:
@@ -17,109 +17,102 @@ jobs:
 
     steps:
 
-    # 1️⃣ Checkout
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    # 2️⃣ Setup Node
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: 'npm'
+      # -----------------------------
+      # Node Setup
+      # -----------------------------
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-    # 3️⃣ Install Dependencies
-    - name: Install dependencies
-      run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-    # 4️⃣ Type Check
-    - name: TypeScript Type Check
-      run: npm run typecheck
+      - name: Type Check
+        run: npx tsc --noEmit
 
-    # 5️⃣ Lint
-    - name: Run ESLint
-      run: npm run lint
+      - name: Run ESLint
+        run: npm run lint
 
-    # 6️⃣ Build App
-    - name: Build Application
-      run: npm run build
+      - name: Build Application
+        run: npm run build
 
-    # 7️⃣ Snyk - Dependency Scan
-    - name: Snyk Open Source Scan
-      uses: snyk/actions/node@master
-      with:
-        command: test
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      # -----------------------------
+      # SNYK SECURITY SCAN
+      # -----------------------------
+      - name: Run Snyk Dependency Scan
+        uses: snyk/actions/node@master
+        with:
+          command: test
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-    # 8️⃣ Configure AWS
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+      # -----------------------------
+      # AWS AUTH
+      # -----------------------------
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    # 9️⃣ Login ECR
-    - name: Login to Amazon ECR
-      run: |
-        aws ecr get-login-password --region $AWS_REGION \
-        | docker login --username AWS --password-stdin $ECR_REGISTRY
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION \
+          | docker login --username AWS --password-stdin $ECR_REGISTRY
 
-    # 🔟 Build Docker
-    - name: Build Docker image
-      run: |
-        docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
-        docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      # -----------------------------
+      # BUILD & PUSH
+      # -----------------------------
+      - name: Build Docker image
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
 
-    # 1️⃣1️⃣ Snyk Container Scan
-    - name: Snyk Container Scan
-      uses: snyk/actions/docker@master
-      with:
-        image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
-        command: test
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      - name: Push image
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    # 1️⃣2️⃣ Generate SBOM (CycloneDX)
-    - name: Install Syft
-      run: |
-        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh
-        sudo mv ./bin/syft /usr/local/bin/
+      # -----------------------------
+      # SBOM GENERATION
+      # -----------------------------
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh
+          sudo mv ./bin/syft /usr/local/bin/
 
-    - name: Generate SBOM
-      run: |
-        syft $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-        -o cyclonedx-json > sbom-cyclonedx.json
+      - name: Generate SBOM (CycloneDX)
+        run: |
+          syft $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+          -o cyclonedx-json > sbom-cyclonedx.json
 
-    # 1️⃣3️⃣ Upload SBOM as Artifact
-    - name: Upload SBOM
-      uses: actions/upload-artifact@v4
-      with:
-        name: sbom-cyclonedx
-        path: sbom-cyclonedx.json
+      - name: Upload SBOM as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom-cyclonedx.json
 
-    # 1️⃣4️⃣ Push Image
-    - name: Push image to ECR
-      run: |
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      # -----------------------------
+      # DEPLOY TO EC2
+      # -----------------------------
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull 627131317824.dkr.ecr.us-east-1.amazonaws.com/pin-proyecto1-repo:latest
 
-    # 1️⃣5️⃣ Deploy to EC2
-    - name: Deploy on EC2
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ec2-user
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+            docker stop app || true
+            docker rm app || true
 
-          docker stop app || true
-          docker rm app || true
-
-          docker run -d \
-            --restart unless-stopped \
-            --memory="256m" \
-            -p 80:80 \
-            --name app \
-            $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+            docker run -d \
+              --restart unless-stopped \
+              --memory="256m" \
+              -p 80:80 \
+              --name app \
+              627131317824.dkr.ecr.us-east-1.amazonaws.com/pin-proyecto1-repo:latest
