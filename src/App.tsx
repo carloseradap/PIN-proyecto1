@@ -20,27 +20,16 @@ function overlaps(a: Block, b: Block, day: number) {
   return a.startMin < b.endMin && b.startMin < a.endMin;
 }
 
-function icsEscape(text: string) {
-  return text
-    .replace(/\\/g, "\\\\")
-    .replace(/;/g, "\\;")
-    .replace(/,/g, "\\,")
-    .replace(/\n/g, "\\n");
-}
-
 export default function App() {
   const [anchor, setAnchor] = useState(new Date());
   const [blocks, setBlocks] = useState<Block[]>(CONFIG.defaultBlocks);
   const [dragId, setDragId] = useState<string | null>(null);
-  const [darkMode, setDarkMode] = useState(
-    localStorage.getItem("nova-dark") === "true"
-  );
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     const root = document.documentElement;
     if (darkMode) root.classList.add("dark");
     else root.classList.remove("dark");
-    localStorage.setItem("nova-dark", darkMode.toString());
   }, [darkMode]);
 
   const base = useMemo(
@@ -48,13 +37,11 @@ export default function App() {
     [anchor]
   );
 
-  const days = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(base);
-      d.setDate(d.getDate() + i);
-      return d;
-    });
-  }, [base]);
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(base);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
 
   const conflicts = useMemo(() => {
     const ids = new Set<string>();
@@ -86,55 +73,29 @@ export default function App() {
     );
   };
 
-  const changeWeek = (delta: number) => {
-    const newDate = new Date(anchor);
-    newDate.setDate(newDate.getDate() + delta * 7);
-    setAnchor(newDate);
+  const addBlock = () => {
+    setBlocks(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        title: "Nuevo Bloque",
+        categoryKey: CONFIG.categories[0].key,
+        days: [1],
+        startMin: 480,
+        endMin: 540,
+        notes: ""
+      }
+    ]);
   };
 
-  const exportICS = () => {
-    if (conflicts.size > 0) {
-      alert("Hay conflictos antes de exportar.");
-      return;
-    }
+  const deleteBlock = (id: string) => {
+    setBlocks(prev => prev.filter(b => b.id !== id));
+  };
 
-    const lines: string[] = [];
-    lines.push("BEGIN:VCALENDAR");
-    lines.push("VERSION:2.0");
-
-    blocks.forEach(b => {
-      b.days.forEach(day => {
-        const d = new Date(base);
-        d.setDate(d.getDate() + day);
-
-        const dateStr =
-          d.getFullYear().toString() +
-          pad(d.getMonth() + 1) +
-          pad(d.getDate());
-
-        const sh = pad(Math.floor(b.startMin / 60));
-        const sm = pad(b.startMin % 60);
-        const eh = pad(Math.floor(b.endMin / 60));
-        const em = pad(b.endMin % 60);
-
-        lines.push("BEGIN:VEVENT");
-        lines.push(`DTSTART:${dateStr}T${sh}${sm}00`);
-        lines.push(`DTEND:${dateStr}T${eh}${em}00`);
-        lines.push(`SUMMARY:${icsEscape(b.title)}`);
-        lines.push("END:VEVENT");
-      });
-    });
-
-    lines.push("END:VCALENDAR");
-
-    const blob = new Blob([lines.join("\r\n")], {
-      type: "text/calendar"
-    });
-
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "nova-flow.ics";
-    a.click();
+  const changeWeek = (delta: number) => {
+    const d = new Date(anchor);
+    d.setDate(d.getDate() + delta * 7);
+    setAnchor(d);
   };
 
   const slots: number[] = [];
@@ -145,27 +106,13 @@ export default function App() {
       <h1>NOVA Flow Mini</h1>
 
       <div className="panel">
-        <button onClick={() => changeWeek(-1)}>
-          ← Semana anterior
-        </button>
-
-        <button onClick={() => changeWeek(1)}>
-          Semana siguiente →
-        </button>
-
-        <button onClick={() => setDarkMode(prev => !prev)}>
+        <button onClick={() => changeWeek(-1)}>← Semana anterior</button>
+        <button onClick={() => changeWeek(1)}>Semana siguiente →</button>
+        <button onClick={() => setDarkMode(d => !d)}>
           {darkMode ? "☀ Light" : "🌙 Dark"}
         </button>
-
-        <button onClick={exportICS}>
-          Exportar .ics
-        </button>
+        <button onClick={addBlock}>Agregar bloque</button>
       </div>
-
-      <h3>
-        Semana: {base.toLocaleDateString()} —{" "}
-        {days[6].toLocaleDateString()}
-      </h3>
 
       <table>
         <thead>
@@ -185,20 +132,12 @@ export default function App() {
                 const block = blocks.find(
                   b => b.days.includes(day) && b.startMin === m
                 );
-                const cont = blocks.find(
-                  b =>
-                    b.days.includes(day) &&
-                    b.startMin < m &&
-                    b.endMin > m
-                );
 
                 return (
                   <td
                     key={i}
                     onDragOver={e => e.preventDefault()}
-                    onDrop={() => {
-                      if (dragId) moveBlock(dragId, day, m);
-                    }}
+                    onDrop={() => dragId && moveBlock(dragId, day, m)}
                   >
                     {block && (
                       <div
@@ -208,15 +147,19 @@ export default function App() {
                         style={{
                           background: conflicts.has(block.id)
                             ? "var(--conflict-bg)"
-                            : "var(--block-bg)",
-                          cursor: "grab"
+                            : "var(--block-bg)"
                         }}
                       >
                         {block.title}
+                        <br />
+                        <button
+                          onClick={() => deleteBlock(block.id)}
+                          style={{ fontSize: 10 }}
+                        >
+                          x
+                        </button>
                       </div>
                     )}
-
-                    {!block && cont && "•"}
                   </td>
                 );
               })}

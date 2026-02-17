@@ -2,7 +2,6 @@ resource "aws_security_group" "app_sg" {
   name        = "pin-proyecto1-sg"
   description = "Allow HTTP and SSH"
   vpc_id      = aws_vpc.main_vpc.id
-
   ingress {
     description = "HTTP"
     from_port   = 80
@@ -10,7 +9,6 @@ resource "aws_security_group" "app_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
     ingress {
     description = "Prometheus"
     from_port   = 9090
@@ -18,7 +16,6 @@ resource "aws_security_group" "app_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   ingress {
     description = "Grafana"
     from_port   = 3000
@@ -26,7 +23,13 @@ resource "aws_security_group" "app_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
+    ingress {
+    description = "Node Exporter"
+    from_port   = 9100
+    to_port     = 9100
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 ingress {
     description = "SSH"
     from_port   = 22

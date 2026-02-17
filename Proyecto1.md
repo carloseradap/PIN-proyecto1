@@ -162,7 +162,6 @@ App.tsx
 config.ts
 index.css
 
-
 ### Build Process
 
 1. Vite builds static assets into `/dist`
@@ -179,3 +178,18 @@ index.css
 - Port 80 exposed
 - Security Group allows HTTP (80)
 
+## 🚀 CI/CD Pipeline
+
+El proyecto utiliza GitHub Actions para:
+
+- Instalar dependencias
+- Ejecutar ESLint
+- Construir imagen Docker
+- Publicar en Amazon ECR
+- Desplegar automáticamente en EC2
+
+Arquitectura:
+
+GitHub → GitHub Actions → ECR → EC2 (Docker + Nginx)
+
+La aplicación se ejecuta dentro del Free Tier de AWS.
