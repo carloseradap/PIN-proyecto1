@@ -1,204 +1,166 @@
-📌 Project: DevOps CI/CD + Containerized Deployment + Observability on AWS EC2
-📖 Overview
+# Proyecto Final Diplomado DevOps
 
-This project demonstrates the implementation of a complete DevOps pipeline including:
+## MundosE -- DevOps2502 -- Grupo 7
 
-CI/CD with GitHub Actions
+### Proyecto 1: CI/CD con GitHub Actions + Terraform + Docker (AWS)
 
-Dockerized application deployment
+------------------------------------------------------------------------
 
-Deployment to AWS EC2
+## 1. Introducción
 
-Container security scanning
+Este proyecto implementa un pipeline completo de Integración y Entrega
+Continua (CI/CD) para una aplicación SPA desarrollada con React +
+TypeScript + Vite, desplegada en AWS utilizando infraestructura como
+código y prácticas de DevSecOps.
 
-SBOM generation (CycloneDX & SPDX)
+Se integran los siguientes componentes:
 
-Monitoring with Prometheus, cAdvisor and Node Exporter
+-   Contenerización con Docker
+-   Infraestructura como Código con Terraform
+-   Pipeline automatizado con GitHub Actions
+-   Publicación de imagen en Amazon ECR
+-   Despliegue automatizado en EC2 (Free Tier)
+-   Generación de SBOM (CycloneDX / SPDX)
+-   Análisis de seguridad (ESLint + Snyk)
+-   Observabilidad con Prometheus + Grafana
 
-Visualization with Grafana
+------------------------------------------------------------------------
 
-Container and EC2 observability dashboards
+## 2. Arquitectura General
 
-🏗 Architecture
+### Stack Tecnológico
 
-The solution architecture consists of:
+-   React
+-   TypeScript
+-   Vite
+-   Docker
+-   Nginx (servidor estático)
+-   AWS EC2 (t2.micro -- Free Tier)
+-   Amazon ECR
+-   Terraform
+-   GitHub Actions
+-   Prometheus
+-   Node Exporter
+-   cAdvisor
+-   Grafana
 
-AWS EC2 instance (Amazon Linux 2023)
+### Flujo de Arquitectura
 
-Docker containers:
+GitHub → GitHub Actions → Amazon ECR → EC2 (Docker)\
+EC2 → Prometheus → Grafana
 
-Application container
+------------------------------------------------------------------------
 
-Prometheus
+## 3. Aplicación
 
-Grafana
+Aplicación SPA construida con:
 
-Node Exporter
+-   React
+-   TypeScript
+-   Vite
 
-cAdvisor
+Estructura principal:
 
-GitHub Actions pipeline for CI/CD
+src/ ├── main.tsx ├── App.tsx ├── config.ts └── index.css
 
-Amazon ECR for container registry
+Build de producción generado en:
 
-🚀 CI/CD Pipeline
+/dist
 
-The pipeline is implemented using GitHub Actions:
+------------------------------------------------------------------------
 
-📁 .github/workflows/deploy.yml
+## 4. Contenerización
 
-Pipeline stages:
-
-Checkout source code
-
-Install dependencies
-
-Run lint (ESLint)
-
-Security scan (Snyk)
-
-Build Docker image
-
-Generate SBOM (CycloneDX / SPDX)
-
-Push image to Amazon ECR
-
-Deploy to EC2
-
-🐳 Docker
-
-Dockerfile located at:
-
-docker/Dockerfile
-
-
-Build command:
-
-docker build -t app-image .
-
-
-Push to ECR:
-
-docker tag app-image:latest <ECR_URI>
-docker push <ECR_URI>
-
-
-Export artifact (optional deliverable):
-
-docker save app-image:latest -o app-image.tar
-
-📦 SBOM Generation
-CycloneDX
-docker sbom app-image:latest -o cyclonedx-json > sbom-cyclonedx.json
-
-SPDX
-docker sbom app-image:latest -o spdx-json > sbom-spdx.json
-
-🔐 Security Scanning
-ESLint
-npx eslint . -f json -o eslint-report.json
-
-Snyk
-snyk test --json > snyk-report.json
-
-SonarQube (Optional)
-
-Static code analysis performed through SonarQube server.
-
-📊 Monitoring Stack
-Prometheus
-
-Scrapes:
-
-Node Exporter
-
-cAdvisor
-
-Application metrics
-
-Grafana Dashboards
-
-Implemented dashboards:
-
-EC2 CPU Usage
-
-EC2 Memory Usage
-
-EC2 Disk Usage
-
-Container CPU
-
-Container Memory
-
-Container Network
-
-Container Disk
-
-Application Status
-
-📈 Key Metrics
-EC2
-
-CPU utilization
-
-Memory usage
-
-Disk usage (root filesystem)
-
-Containers
-
-CPU per container
-
-Memory per container
-
-Disk usage per container
-
-Network RX/TX per container
-
-Container UP/DOWN status
-
-🔐 Security Practices Implemented
-
-SBOM generation
-
-Vulnerability scanning
-
-Static code analysis
-
-Image scanning
-
-Container isolation
-
-Non-root execution (if implemented)
-
-📦 Deliverables
-
-GitHub Actions Workflow
+Archivo:
 
 Dockerfile
 
-Docker image artifact (.tar)
+### Estrategia Multi-Stage
 
-SBOM (CycloneDX + SPDX)
+1.  Stage 1 -- Node: build de la aplicación
+2.  Stage 2 -- Nginx: servidor estático para producción
 
-Security scan reports
+Imagen publicada en:
 
-Monitoring configuration
+627131317824.dkr.ecr.us-east-1.amazonaws.com/pin-proyecto1-repo:latest
 
-Dashboards JSON export
+------------------------------------------------------------------------
 
-🧠 Skills Demonstrated
+## 5. Infraestructura como Código (Terraform)
 
-DevOps Engineering
+La infraestructura se define en la carpeta:
 
-CI/CD
+infra/
 
-Containerization
+Incluye:
 
-AWS Deployment
+-   VPC
+-   Subnet pública
+-   Internet Gateway
+-   Security Group
+-   EC2 Instance
+-   IAM Role (AmazonEC2ContainerRegistryReadOnly)
+-   ECR Repository
 
-Observability
+------------------------------------------------------------------------
 
-Security & Compliance
+## 6. Pipeline CI/CD
 
-Infrastructure Monitoring
+Definido en:
+
+.github/workflows/deploy.yml
+
+Etapas:
+
+1.  Checkout
+2.  npm ci
+3.  Typecheck
+4.  ESLint
+5.  Build Docker
+6.  SBOM
+7.  Push a ECR
+8.  Deploy en EC2
+
+------------------------------------------------------------------------
+
+## 7. Seguridad
+
+### ESLint
+
+Análisis estático integrado al pipeline.
+
+### Snyk
+
+Escaneo de dependencias e imagen Docker.
+
+### SBOM
+
+Generado con Syft en formato CycloneDX y SPDX.
+
+------------------------------------------------------------------------
+
+## 8. Observabilidad
+
+Stack implementado:
+
+-   Prometheus
+-   Node Exporter
+-   cAdvisor
+-   Grafana
+
+Métricas:
+
+EC2: - CPU - Memoria - Disco - Red
+
+Contenedores: - CPU - Memoria - Disco - Red - Estado
+
+------------------------------------------------------------------------
+
+## 9. Conclusión
+
+El proyecto demuestra la integración completa de CI/CD, IaC, seguridad y
+observabilidad en AWS Free Tier.
+
+Autor: Grupo 7 -- MundosE\
+Diplomado DevOps 2502\
+Año 2026

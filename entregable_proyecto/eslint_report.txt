@@ -1,0 +1,4 @@
+
+> nova-flow-mini@1.0.0 lint
+> eslint .
+
