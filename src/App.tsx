@@ -15,21 +15,16 @@ function startOfWeek(d: Date, mode: "monday" | "sunday") {
   return date;
 }
 
-function overlaps(a: Block, b: Block, day: number) {
-  if (!a.days.includes(day) || !b.days.includes(day)) return false;
-  return a.startMin < b.endMin && b.startMin < a.endMin;
-}
-
 export default function App() {
   const [anchor, setAnchor] = useState(new Date());
-  const [blocks, setBlocks] = useState<Block[]>(CONFIG.defaultBlocks);
+  const [blocks, setBlocks] = useState<(Block & { color: string })[]>([]);
   const [dragId, setDragId] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(false);
+  const [editing, setEditing] = useState<(Block & { color: string }) | null>(null);
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (darkMode) root.classList.add("dark");
-    else root.classList.remove("dark");
+    if (darkMode) document.body.classList.add("dark");
+    else document.body.classList.remove("dark");
   }, [darkMode]);
 
   const base = useMemo(
@@ -43,59 +38,43 @@ export default function App() {
     return d;
   });
 
-  const conflicts = useMemo(() => {
-    const ids = new Set<string>();
-    for (let i = 0; i < blocks.length; i++) {
-      for (let j = i + 1; j < blocks.length; j++) {
-        for (let day = 0; day < 7; day++) {
-          if (overlaps(blocks[i], blocks[j], day)) {
-            ids.add(blocks[i].id);
-            ids.add(blocks[j].id);
-          }
-        }
-      }
-    }
-    return ids;
-  }, [blocks]);
+  const changeWeek = (delta: number) => {
+    const d = new Date(anchor);
+    d.setDate(d.getDate() + delta * 7);
+    setAnchor(d);
+  };
+
+  const addBlockAt = (day: number, start: number) => {
+    const newBlock = {
+      id: Date.now().toString(),
+      title: "Nuevo bloque",
+      categoryKey: "",
+      days: [day],
+      startMin: start,
+      endMin: start + 60,
+      notes: "",
+      color: "#007bff"
+    };
+    setBlocks(prev => [...prev, newBlock]);
+    setEditing(newBlock);
+  };
+
+  const saveBlock = () => {
+    if (!editing) return;
+    setBlocks(prev =>
+      prev.map(b => (b.id === editing.id ? editing : b))
+    );
+    setEditing(null);
+  };
 
   const moveBlock = (id: string, day: number, start: number) => {
     setBlocks(prev =>
       prev.map(b =>
         b.id === id
-          ? {
-              ...b,
-              days: [day],
-              startMin: start,
-              endMin: start + (b.endMin - b.startMin)
-            }
+          ? { ...b, days: [day], startMin: start, endMin: start + (b.endMin - b.startMin) }
           : b
       )
     );
-  };
-
-  const addBlock = () => {
-    setBlocks(prev => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        title: "Nuevo Bloque",
-        categoryKey: CONFIG.categories[0].key,
-        days: [1],
-        startMin: 480,
-        endMin: 540,
-        notes: ""
-      }
-    ]);
-  };
-
-  const deleteBlock = (id: string) => {
-    setBlocks(prev => prev.filter(b => b.id !== id));
-  };
-
-  const changeWeek = (delta: number) => {
-    const d = new Date(anchor);
-    d.setDate(d.getDate() + delta * 7);
-    setAnchor(d);
   };
 
   const slots: number[] = [];
@@ -106,12 +85,11 @@ export default function App() {
       <h1>NOVA Flow Mini</h1>
 
       <div className="panel">
-        <button onClick={() => changeWeek(-1)}>← Semana anterior</button>
-        <button onClick={() => changeWeek(1)}>Semana siguiente →</button>
+        <button onClick={() => changeWeek(-1)}>←</button>
+        <button onClick={() => changeWeek(1)}>→</button>
         <button onClick={() => setDarkMode(d => !d)}>
-          {darkMode ? "☀ Light" : "🌙 Dark"}
+          {darkMode ? "Light" : "Dark"}
         </button>
-        <button onClick={addBlock}>Agregar bloque</button>
       </div>
 
       <table>
@@ -136,6 +114,7 @@ export default function App() {
                 return (
                   <td
                     key={i}
+                    onClick={() => !block && addBlockAt(day, m)}
                     onDragOver={e => e.preventDefault()}
                     onDrop={() => dragId && moveBlock(dragId, day, m)}
                   >
@@ -143,21 +122,11 @@ export default function App() {
                       <div
                         draggable
                         onDragStart={() => setDragId(block.id)}
+                        onDoubleClick={() => setEditing(block)}
                         className="block"
-                        style={{
-                          background: conflicts.has(block.id)
-                            ? "var(--conflict-bg)"
-                            : "var(--block-bg)"
-                        }}
+                        style={{ background: block.color }}
                       >
                         {block.title}
-                        <br />
-                        <button
-                          onClick={() => deleteBlock(block.id)}
-                          style={{ fontSize: 10 }}
-                        >
-                          x
-                        </button>
                       </div>
                     )}
                   </td>
@@ -167,6 +136,37 @@ export default function App() {
           ))}
         </tbody>
       </table>
+
+      {editing && (
+        <div className="modal">
+          <div className="modal-content">
+            <h3>Editar bloque</h3>
+            <input
+              value={editing.title}
+              onChange={e =>
+                setEditing({ ...editing, title: e.target.value })
+              }
+            />
+            <textarea
+              placeholder="Comentarios"
+              value={editing.notes}
+              onChange={e =>
+                setEditing({ ...editing, notes: e.target.value })
+              }
+            />
+            <input
+              type="color"
+              value={editing.color}
+              onChange={e =>
+                setEditing({ ...editing, color: e.target.value })
+              }
+            />
+            <br /><br />
+            <button onClick={saveBlock}>Guardar</button>
+            <button onClick={() => setEditing(null)}>Cancelar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
