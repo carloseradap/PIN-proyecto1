@@ -31,7 +31,10 @@ Seguridad integrada (Snyk + ESLint + SBOM)
 Observabilidad (Prometheus + Grafana)
 
 🏗️ 2. Arquitectura General
-🔹 Diagrama de Arquitectura AWS
+
+### 🔹 Diagrama de Arquitectura AWS
+
+```mermaid
 flowchart TB
 
     subgraph GitHub
@@ -69,48 +72,59 @@ flowchart TB
     cAdv --> Prom
     Prom --> Graf
 
+
+
+---
+
 🔁 3. Pipeline CI/CD
-📦 Diagrama del Pipeline
+
+```markdown
+## 🔁 3. Pipeline CI/CD
+
+### 📦 Diagrama del Pipeline
+
+```mermaid
 flowchart LR
 
-subgraph DEV["👨‍💻 Desarrollo"]
-    A[Developer]
-    B[GitHub Repository]
-end
+    subgraph DEV["👨‍💻 Desarrollo"]
+        A[Developer]
+        B[GitHub Repository]
+    end
 
-A -->|Push to main| B
+    A -->|Push to main| B
 
-subgraph CI["⚙️ GitHub Actions Pipeline"]
-    C[Checkout]
-    D[npm ci]
-    E[Type Check]
-    F[ESLint]
-    G[Snyk Scan]
-    H[Docker Build]
-    I[Generate SBOM]
-    J[Push to ECR]
-end
+    subgraph CI["⚙️ GitHub Actions Pipeline"]
+        C[Checkout]
+        D[npm ci]
+        E[Type Check]
+        F[ESLint]
+        G[Snyk Scan]
+        H[Docker Build]
+        I[Generate SBOM]
+        J[Push to ECR]
+    end
 
-B --> C
-C --> D
-D --> E
-E --> F
-F --> G
-G --> H
-H --> I
-I --> J
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> J
 
-subgraph AWS["☁️ AWS"]
-    K[(Amazon ECR)]
-    L[EC2]
-    M[Docker Runtime]
-    N[App Running]
-end
+    subgraph AWS["☁️ AWS"]
+        K[(Amazon ECR)]
+        L[EC2 Instance]
+        M[Docker Runtime]
+        N[App Running]
+    end
 
-J --> K
-K -->|Pull| L
-L --> M
-M --> N
+    J --> K
+    K -->|docker pull| L
+    L --> M
+    M --> N
+
 
 🔹 Etapas del Pipeline
 
